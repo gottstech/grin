@@ -1,4 +1,4 @@
-[![Build Status](https://dev.azure.com/gottstech/grin/_apis/build/status/gottstech.grin?branchName=master)](https://dev.azure.com/gottstech/grin/_build/latest?definitionId=1&branchName=master)
+[![Build Status](https://img.shields.io/travis/gottstech/grin/master.svg)](https://travis-ci.org/gottstech/grin)
 [![Coverage Status](https://img.shields.io/codecov/c/github/gottstech/grin/master.svg)](https://codecov.io/gh/gottstech/grin)
 
 # Grin
