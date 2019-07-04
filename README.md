@@ -1,5 +1,5 @@
-[![Build Status](https://dev.azure.com/mimblewimble/grin/_apis/build/status/mimblewimble.grin?branchName=master)](https://dev.azure.com/mimblewimble/grin/_build/latest?definitionId=1&branchName=master)
-[![Coverage Status](https://img.shields.io/codecov/c/github/mimblewimble/grin/master.svg)](https://codecov.io/gh/mimblewimble/grin)
+[![Build Status](https://dev.azure.com/gottstech/grin/_apis/build/status/gottstech.grin?branchName=master)](https://dev.azure.com/gottstech/grin/_build/latest?definitionId=1&branchName=master)
+[![Coverage Status](https://img.shields.io/codecov/c/github/gottstech/grin/master.svg)](https://codecov.io/gh/gottstech/grin)
 
 # Grin
 
