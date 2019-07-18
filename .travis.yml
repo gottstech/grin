@@ -82,7 +82,9 @@ matrix:
     - os: windows
       env: CI_JOB="test"        CI_JOB_ARGS="api util store"
 
-script: .ci/general-jobs
+script:
+    - if [ "$TRAVIS_OS_NAME" = "windows" ]; then git checkout Cargo.toml; git apply windows.patch; fi
+    - .ci/general-jobs
 
 before_cache:
   - rm -rf $TRAVIS_BUILD_DIR/target/tmp
