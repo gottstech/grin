@@ -5,7 +5,7 @@
 
 This repo is NOT the "official" Grin implementation, but for the wallet service.
 
-It includes / will include a lot optimizations and improvements for the convenience of the wallet implementation/s and wallet service/s.
+It includes / will include optimizations and improvements for the convenience of the wallet implementation/s and wallet service/s.
 
 ## Credits
 
