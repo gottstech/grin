@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::conn::{Message, MessageHandler, Response, Tracker};
-use crate::core::core::{self, hash::Hash, CompactBlock};
+use crate::core::core::{self, hash::Hash, hash::Hashed, CompactBlock};
 
 use crate::msg::{
 	BanReason, GetPeerAddrs, Headers, KernelDataResponse, Locator, PeerAddrs, Ping, Pong,
@@ -298,15 +298,17 @@ impl MessageHandler for Protocol {
 					sm_req.hash, sm_req.height
 				);
 
-				let txhashset = self.adapter.txhashset_read(sm_req.hash);
+				let txhashset_header = self.adapter.txhashset_archive_header()?;
+				let txhashset_header_hash = txhashset_header.hash();
+				let txhashset = self.adapter.txhashset_read(txhashset_header_hash);
 
 				if let Some(txhashset) = txhashset {
 					let file_sz = txhashset.reader.metadata()?.len();
 					let mut resp = Response::new(
 						Type::TxHashSetArchive,
 						&TxHashSetArchive {
-							height: sm_req.height as u64,
-							hash: sm_req.hash,
+							height: txhashset_header.height as u64,
+							hash: txhashset_header_hash,
 							bytes: file_sz,
 						},
 						writer,
