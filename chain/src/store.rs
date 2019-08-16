@@ -35,6 +35,7 @@ const HEADER_HEAD_PREFIX: u8 = 'I' as u8;
 const SYNC_HEAD_PREFIX: u8 = 's' as u8;
 const COMMIT_POS_PREFIX: u8 = 'c' as u8;
 const COMMIT_POS_HGT_PREFIX: u8 = 'p' as u8;
+const TXKERNEL_POS_PREFIX: u8 = 'k' as u8;
 const BLOCK_INPUT_BITMAP_PREFIX: u8 = 'B' as u8;
 const BLOCK_SUMS_PREFIX: u8 = 'M' as u8;
 
@@ -149,6 +150,15 @@ impl ChainStore {
 				&mut commit.as_ref().to_vec(),
 			)),
 			&format!("Output position for: {:?}", commit),
+		)
+	}
+
+	/// Get mmr position and height for the given tx kernel public excess.
+	pub fn get_txkernel_pos_height(&self, excess: &Commitment) -> Result<(u64, u64), Error> {
+		option_to_not_found(
+			self.db
+				.get_ser(&to_key(TXKERNEL_POS_PREFIX, &mut excess.as_ref().to_vec())),
+			"TxKernel pos",
 		)
 	}
 
@@ -343,6 +353,35 @@ impl<'a> Batch<'a> {
 		for (k, _) in self.db.iter::<(u64, u64)>(&key)? {
 			self.db.delete(&k)?;
 		}
+		Ok(())
+	}
+
+	/// Save tx kernel position and height to index.
+	pub fn save_txkernel_pos_height(
+		&self,
+		excess: &Commitment,
+		pos: u64,
+		height: u64,
+	) -> Result<(), Error> {
+		self.db.put_ser(
+			&to_key(TXKERNEL_POS_PREFIX, &mut excess.as_ref().to_vec())[..],
+			&(pos, height),
+		)
+	}
+
+	/// Get tx kernel position and height from index.
+	pub fn get_txkernel_pos_height(&self, excess: &Commitment) -> Result<(u64, u64), Error> {
+		option_to_not_found(
+			self.db
+				.get_ser(&to_key(TXKERNEL_POS_PREFIX, &mut excess.as_ref().to_vec())),
+			"TxKernel pos",
+		)
+	}
+
+	/// Delete tx kernel position and height from index.
+	pub fn delete_txkernel_pos_height(&self, excess: &Commitment) -> Result<(), Error> {
+		self.db
+			.delete(&to_key(TXKERNEL_POS_PREFIX, &mut excess.as_ref().to_vec()))?;
 		Ok(())
 	}
 

@@ -28,6 +28,7 @@ use self::chain_api::ChainHandler;
 use self::chain_api::ChainValidationHandler;
 use self::chain_api::KernelHandler;
 use self::chain_api::OutputHandler;
+use self::chain_api::TxKernelHandler;
 use self::peers_api::PeerHandler;
 use self::peers_api::PeersAllHandler;
 use self::peers_api::PeersConnectedHandler;
@@ -99,6 +100,7 @@ pub fn build_router(
 		"get chain/validate".to_string(),
 		"get chain/outputs/byids?id=xxx,yyy,zzz".to_string(),
 		"get chain/outputs/byheight?start_height=101&end_height=200".to_string(),
+		"get chain/kernels/byids?id=xxx,yyy,zzz".to_string(),
 		"get status".to_string(),
 		"get txhashset/roots".to_string(),
 		"get txhashset/lastoutputs?n=10".to_string(),
@@ -123,6 +125,10 @@ pub fn build_router(
 	let kernel_handler = KernelHandler {
 		chain: Arc::downgrade(&chain),
 	};
+	let txkernel_handler = TxKernelHandler {
+		chain: Arc::downgrade(&chain),
+	};
+
 	let block_handler = BlockHandler {
 		chain: Arc::downgrade(&chain),
 	};

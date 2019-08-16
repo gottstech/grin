@@ -14,7 +14,7 @@
 
 use super::utils::{get_output, w};
 use crate::chain;
-use crate::core::core::hash::Hashed;
+use crate::core::core::{hash::Hashed, TxKernelApiEntry};
 use crate::rest::*;
 use crate::router::{Handler, ResponseFuture};
 use crate::types::*;
@@ -79,6 +79,51 @@ impl Handler for ChainCompactHandler {
 				StatusCode::INTERNAL_SERVER_ERROR,
 				format!("compact failed: {}", e),
 			),
+		}
+	}
+}
+
+// Supports retrieval of multiple tx kernels in a single request -
+// GET /v1/chain/kernels/byids?id=xxx,yyy,zzz
+// GET /v1/chain/kernels/byids?id=xxx&id=yyy&id=zzz
+pub struct TxKernelHandler {
+	pub chain: Weak<chain::Chain>,
+}
+
+impl TxKernelHandler {
+	fn kernels_by_ids(&self, req: &Request<Body>) -> Result<Vec<TxKernelApiEntry>, Error> {
+		let mut excesses: Vec<String> = vec![];
+
+		let query = must_get_query!(req);
+		let params = QueryParams::from(query);
+		params.process_multival_param("id", |id| excesses.push(id.to_owned()));
+
+		let mut tx_kernels: Vec<TxKernelApiEntry> = vec![];
+		let chain = w(&self.chain)?;
+		for ref id in excesses {
+			let c = util::from_hex(id.clone()).context(ErrorKind::Argument(format!(
+				"Not a valid commitment: {}",
+				id
+			)))?;
+			let excess = Commitment::from_vec(c);
+			match chain.get_txkernel_by_excess(&excess) {
+				Ok(tx_kernel) => tx_kernels.push(tx_kernel),
+				Err(e) => debug!(
+					"Failure to get tx kernel for excess {}. {}",
+					util::to_hex(excess.as_ref().to_vec()),
+					e
+				),
+			};
+		}
+		Ok(tx_kernels)
+	}
+}
+
+impl Handler for TxKernelHandler {
+	fn get(&self, req: Request<Body>) -> ResponseFuture {
+		match right_path_element!(req) {
+			"byids" => result_to_response(self.kernels_by_ids(&req)),
+			_ => response(StatusCode::BAD_REQUEST, ""),
 		}
 	}
 }

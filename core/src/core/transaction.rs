@@ -486,6 +486,16 @@ impl FixedLength for TxKernelEntry {
 		+ secp::constants::AGG_SIGNATURE_SIZE;
 }
 
+/// Wrapper around a tx kernel used when querying them by API.
+/// These will be useful when we verify a transaction by its kernel excess.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct TxKernelApiEntry {
+	/// The block height where this transaction is packaged into a block.
+	pub height: u64,
+	/// The underlying tx kernel.
+	pub kernel: TxKernel,
+}
+
 /// Enum of possible tx weight verification options -
 ///
 /// * As "transaction" checks tx (as block) weight does not exceed max_block_weight.
