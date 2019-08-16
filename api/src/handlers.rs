@@ -95,8 +95,8 @@ pub fn build_router(
 		"get blocks".to_string(),
 		"get headers".to_string(),
 		"get chain".to_string(),
-		"post chain/compact".to_string(),
-		"get chain/validate".to_string(),
+		// "post chain/compact".to_string(),
+		// "get chain/validate".to_string(),
 		"get chain/outputs/byids?id=xxx,yyy,zzz".to_string(),
 		"get chain/outputs/byheight?start_height=101&end_height=200".to_string(),
 		"get chain/kernels/byids?id=xxx,yyy,zzz".to_string(),
@@ -178,11 +178,11 @@ pub fn build_router(
 	router.add_route("/v1/chain", Arc::new(chain_tip_handler))?;
 	router.add_route("/v1/chain/outputs/*", Arc::new(output_handler))?;
 	router.add_route("/v1/chain/kernels/*", Arc::new(txkernel_handler))?;
-	router.add_route("/v1/chain/compact", Arc::new(chain_compact_handler))?;
-	router.add_route("/v1/chain/validate", Arc::new(chain_validation_handler))?;
+	// router.add_route("/v1/chain/compact", Arc::new(chain_compact_handler))?;
+	// router.add_route("/v1/chain/validate", Arc::new(chain_validation_handler))?;
 	router.add_route("/v1/txhashset/*", Arc::new(txhashset_handler))?;
 	router.add_route("/v1/status", Arc::new(status_handler))?;
-	router.add_route("/v1/kerneldownload", Arc::new(kernel_download_handler))?;
+	// router.add_route("/v1/kerneldownload", Arc::new(kernel_download_handler))?;
 	router.add_route("/v1/pool", Arc::new(pool_info_handler))?;
 	router.add_route("/v1/pool/push_tx", Arc::new(pool_push_handler))?;
 	router.add_route("/v1/peers/all", Arc::new(peers_all_handler))?;
