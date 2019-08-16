@@ -237,7 +237,7 @@ impl Handler for OutputHandler {
 	fn get(&self, req: Request<Body>) -> ResponseFuture {
 		match right_path_element!(req) {
 			"byids" => result_to_response(self.outputs_by_ids(&req)),
-			"byheight" => result_to_response(self.outputs_block_batch(&req)),
+			// "byheight" => result_to_response(self.outputs_block_batch(&req)),
 			_ => response(StatusCode::BAD_REQUEST, ""),
 		}
 	}
