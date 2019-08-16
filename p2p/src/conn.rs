@@ -183,7 +183,7 @@ pub const SEND_CHANNEL_CAP: usize = 100;
 pub struct StopHandle {
 	/// Channel to close the connection
 	stopped: Arc<AtomicBool>,
-	// we need Option to take ownhership of the handle in stop()
+	// we need Option to take ownership of the handle in stop()
 	reader_thread: Option<JoinHandle<()>>,
 	writer_thread: Option<JoinHandle<()>>,
 }
@@ -204,20 +204,20 @@ impl StopHandle {
 	}
 
 	fn join_thread(&self, peer_thread: JoinHandle<()>) {
-		// wait only if other thread is calling us, eg shutdown
-		if thread::current().id() != peer_thread.thread().id() {
-			debug!("waiting for thread {:?} exit", peer_thread.thread().id());
-			if let Err(e) = peer_thread.join() {
+			// wait only if other thread is calling us, eg shutdown
+			if thread::current().id() != peer_thread.thread().id() {
+				debug!("waiting for thread {:?} exit", peer_thread.thread().id());
+				if let Err(e) = peer_thread.join() {
 				error!("failed to stop peer thread: {:?}", e);
-			}
-		} else {
-			debug!(
+				}
+			} else {
+				debug!(
 				"attempt to stop thread {:?} from itself",
-				peer_thread.thread().id()
-			);
+					peer_thread.thread().id()
+				);
+			}
 		}
 	}
-}
 
 pub struct ConnHandle {
 	/// Channel to allow sending data through the connection
@@ -282,7 +282,8 @@ pub fn listen<H>(
 where
 	H: MessageHandler,
 {
-	let (send_tx, send_rx) = mpsc::sync_channel(SEND_CHANNEL_CAP);
+	// Note: add 50% the actual send channel capability for stability and safety
+	let (send_tx, send_rx) = mpsc::sync_channel(SEND_CHANNEL_CAP + SEND_CHANNEL_CAP / 2);
 
 	stream
 		.set_read_timeout(Some(IO_TIMEOUT))
