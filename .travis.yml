@@ -88,3 +88,17 @@ script:
 
 before_cache:
   - rm -rf $TRAVIS_BUILD_DIR/target/tmp
+
+before_deploy:
+- bash .ci/release-jobs
+
+deploy:
+  provider: releases
+  api_key:
+    secure: RjROfemw22pR0fA6vB1QUXu33cLsObGUj8Yg2znPVW4tfem8wXpe1p073YxT/2el2bcvaOL1lVgLaOxqEDvZV4FhWuxlVYpytALO/Xcusx4NYRVcLPJLXBrHgQdlm0F94xYZ2DMqhS7be2TOMvDv/D5JQUqOkgGr/MuxW2W5vH9vyulUo/I+R8qjanYWVnWO4yj5oTP4xyRijPvaKz70WqrAAv2KJjWaqML1R+WZ0YvrKtKjoaq3D+IIhU3HawQDD+ecCBzEsk2duKOtmebikB8417vzRD7dyndwn1TpXqZGK8Jrgj3gmwiKrUyamYBbgMz7H0BfgpQh8paKErrAZkVG42dqEiJPJqp9mAO0+cDVx/tvA4CzQSIFtHcCwvp48tPtrg7uxLmBmThudiBg6TtXxD9szOCIdjpAkOEWZDtrGCvU6vjZ8nSPYY8yMo/S+hs5/itmcmBg/+0AoFAw6OIuLoZK4V8Q/dZ6Ol+yGjfBgfKTJ/OYA0Ft+D/nDsqhG/+iTWhf5QZAWm/2TpFsr7/01Ewi3MBuHfOR8GKwM5HM7nk6rqIsJMNcci7Ei0BSU4b7J/WdHyIE+K3GG4cP/eoRh9r1XjP4KHAIatTAQW/5BD1TCfsxNLxY5QeoSX9RxgKItwnBw3gVrZQHpu1vfRNM1p2BiHhIAvT40pufFec=
+  file_glob: true
+  file: target/release/grin-*.*
+  skip_cleanup: true
+  on:
+    repo: gottstech/grin
+    tags: true
