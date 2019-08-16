@@ -294,9 +294,9 @@ impl TxHashSet {
 		}
 	}
 
-	/// Return Commit's MMR position
-	pub fn get_output_pos(&self, commit: &Commitment) -> Result<u64, Error> {
-		Ok(self.commit_index.get_output_pos(&commit)?)
+	/// Return Commit's MMR position and block height
+	pub fn get_output_pos_height(&self, commit: &Commitment) -> Result<(u64, u64), Error> {
+		Ok(self.commit_index.get_output_pos_height(&commit)?)
 	}
 
 	/// build a new merkle proof for the given position.

@@ -36,8 +36,8 @@ use std::sync::Weak;
 // UTXO traversal::
 // GET /v1/txhashset/outputs?start_index=1&max=100
 //
-// Build a merkle proof for a given pos
-// GET /v1/txhashset/merkleproof?n=1
+// Build a merkle proof for a given output commitment
+// GET /v1/txhashset/merkleproof?id=xxx
 
 pub struct TxHashSetHandler {
 	pub chain: Weak<chain::Chain>,
@@ -99,18 +99,20 @@ impl TxHashSetHandler {
 		)))?;
 		let commit = Commitment::from_vec(c);
 		let chain = w(&self.chain)?;
-		let output_pos = chain.get_output_pos(&commit).context(ErrorKind::NotFound)?;
-		let merkle_proof = chain::Chain::get_merkle_proof_for_pos(&chain, commit)
+		let output_pos_height = chain
+			.get_output_pos_height(&commit)
+			.context(ErrorKind::NotFound)?;
+		let merkle_proof = chain::Chain::get_merkle_proof_for_output(&chain, commit)
 			.map_err(|_| ErrorKind::NotFound)?;
 		Ok(OutputPrintable {
 			output_type: OutputType::Coinbase,
-			commit: Commitment::from_vec(vec![]),
+			commit,
 			spent: false,
 			proof: None,
 			proof_hash: "".to_string(),
-			block_height: None,
+			block_height: Some(output_pos_height.1),
 			merkle_proof: Some(merkle_proof),
-			mmr_index: output_pos,
+			mmr_index: output_pos_height.0,
 		})
 	}
 }

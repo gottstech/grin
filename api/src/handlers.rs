@@ -106,7 +106,7 @@ pub fn build_router(
 		"get txhashset/lastrangeproofs".to_string(),
 		"get txhashset/lastkernels".to_string(),
 		"get txhashset/outputs?start_index=1&max=100".to_string(),
-		"get txhashset/merkleproof?n=1".to_string(),
+		"get txhashset/merkleproof?id=xxx".to_string(),
 		"get pool".to_string(),
 		"post pool/push_tx".to_string(),
 		"post peers/a.b.c.d:p/ban".to_string(),
