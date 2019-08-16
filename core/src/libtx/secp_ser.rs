@@ -18,6 +18,14 @@ use crate::keychain::BlindingFactor;
 use crate::serde::{Deserialize, Deserializer, Serializer};
 use crate::util::secp::pedersen::{Commitment, RangeProof};
 use crate::util::{from_hex, to_hex};
+use std::fmt;
+
+struct ExpectedString(pub String);
+impl serde::de::Expected for ExpectedString {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{}", self.0)
+	}
+}
 
 /// Serializes a secp PublicKey to and from hex
 pub mod pubkey_serde {
@@ -204,6 +212,28 @@ where
 	String::deserialize(deserializer)
 		.and_then(|string| from_hex(string).map_err(|err| Error::custom(err.to_string())))
 		.and_then(|bytes: Vec<u8>| Ok(Commitment::from_vec(bytes.to_vec())))
+}
+
+/// Creates a [u8; 32] from a hex string
+pub fn hex_to_u8<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
+where
+	D: Deserializer<'de>,
+{
+	String::deserialize(deserializer)
+		.and_then(|string| {
+			from_hex(string).map_err(|err| serde::de::Error::custom(err.to_string()))
+		})
+		.and_then(|bytes: Vec<u8>| {
+			let mut ret = [0u8; 32];
+			match bytes.len() {
+				32 => ret[..].copy_from_slice(&bytes),
+				_ => Err(serde::de::Error::invalid_length(
+					bytes.len(),
+					&ExpectedString("a 32-byte hex string".to_owned()),
+				))?,
+			}
+			Ok(ret)
+		})
 }
 
 /// Seralizes a byte string into hex

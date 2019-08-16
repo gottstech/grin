@@ -25,6 +25,7 @@ use std::{fmt, ops};
 
 use crate::blake2::blake2b::Blake2b;
 
+use crate::libtx::secp_ser;
 use crate::ser::{
 	self, AsFixedBytes, Error, FixedLength, ProtocolVersion, Readable, Reader, Writeable, Writer,
 };
@@ -36,7 +37,13 @@ pub const ZERO_HASH: Hash = Hash([0; 32]);
 /// A hash to uniquely (or close enough) identify one of the main blockchain
 /// constructs. Used pervasively for blocks, transactions and outputs.
 #[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
-pub struct Hash([u8; 32]);
+pub struct Hash(
+	#[serde(
+		serialize_with = "secp_ser::as_hex",
+		deserialize_with = "secp_ser::hex_to_u8"
+	)]
+	pub [u8; 32],
+);
 
 impl DefaultHashable for Hash {}
 

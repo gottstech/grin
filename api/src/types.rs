@@ -18,22 +18,12 @@ use crate::chain;
 use crate::core::core::hash::Hashed;
 use crate::core::core::merkle_proof::MerkleProof;
 use crate::core::core::{KernelFeatures, TxKernel};
-use crate::core::{core, ser};
+use crate::core::{core, libtx::secp_ser, ser};
 use crate::p2p;
 use crate::util;
 use crate::util::secp::pedersen;
 use serde;
-use serde::de::MapAccess;
-use serde::ser::SerializeStruct;
 use std::fmt;
-
-macro_rules! no_dup {
-	($field:ident) => {
-		if $field.is_some() {
-			return Err(serde::de::Error::duplicate_field("$field"));
-			}
-	};
-}
 
 /// API Version Information
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -157,7 +147,7 @@ impl TxHashSetNode {
 	}
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum OutputType {
 	Coinbase,
 	Transaction,
@@ -240,12 +230,15 @@ impl<'de> serde::de::Visitor<'de> for PrintableCommitmentVisitor {
 }
 
 // As above, except formatted a bit better for human viewing
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OutputPrintable {
 	/// The type of output Coinbase|Transaction
 	pub output_type: OutputType,
-	/// The homomorphic commitment representing the output's amount
-	/// (as hex string)
+	/// The homomorphic commitment representing the output's amount (as hex string)
+	#[serde(
+		serialize_with = "secp_ser::as_hex",
+		deserialize_with = "secp_ser::commitment_from_hex"
+	)]
 	pub commit: pedersen::Commitment,
 	/// Whether the output has been spent
 	pub spent: bool,
@@ -336,147 +329,6 @@ impl OutputPrintable {
 			proof: p_bytes,
 			plen: p_bytes.len(),
 		})
-	}
-}
-
-impl serde::ser::Serialize for OutputPrintable {
-	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: serde::ser::Serializer,
-	{
-		let mut state = serializer.serialize_struct("OutputPrintable", 7)?;
-		state.serialize_field("output_type", &self.output_type)?;
-		state.serialize_field("commit", &util::to_hex(self.commit.0.to_vec()))?;
-		state.serialize_field("spent", &self.spent)?;
-		state.serialize_field("proof", &self.proof)?;
-		state.serialize_field("proof_hash", &self.proof_hash)?;
-		state.serialize_field("block_height", &self.block_height)?;
-
-		let hex_merkle_proof = &self.merkle_proof.clone().map(|x| x.to_hex());
-		state.serialize_field("merkle_proof", &hex_merkle_proof)?;
-		state.serialize_field("mmr_index", &self.mmr_index)?;
-
-		state.end()
-	}
-}
-
-impl<'de> serde::de::Deserialize<'de> for OutputPrintable {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-	where
-		D: serde::de::Deserializer<'de>,
-	{
-		#[derive(Deserialize)]
-		#[serde(field_identifier, rename_all = "snake_case")]
-		enum Field {
-			OutputType,
-			Commit,
-			Spent,
-			Proof,
-			ProofHash,
-			BlockHeight,
-			MerkleProof,
-			MmrIndex,
-		}
-
-		struct OutputPrintableVisitor;
-
-		impl<'de> serde::de::Visitor<'de> for OutputPrintableVisitor {
-			type Value = OutputPrintable;
-
-			fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-				formatter.write_str("a print able Output")
-			}
-
-			fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-			where
-				A: MapAccess<'de>,
-			{
-				let mut output_type = None;
-				let mut commit = None;
-				let mut spent = None;
-				let mut proof = None;
-				let mut proof_hash = None;
-				let mut block_height = None;
-				let mut merkle_proof = None;
-				let mut mmr_index = None;
-
-				while let Some(key) = map.next_key()? {
-					match key {
-						Field::OutputType => {
-							no_dup!(output_type);
-							output_type = Some(map.next_value()?)
-						}
-						Field::Commit => {
-							no_dup!(commit);
-
-							let val: String = map.next_value()?;
-							let vec =
-								util::from_hex(val.clone()).map_err(serde::de::Error::custom)?;
-							commit = Some(pedersen::Commitment::from_vec(vec));
-						}
-						Field::Spent => {
-							no_dup!(spent);
-							spent = Some(map.next_value()?)
-						}
-						Field::Proof => {
-							no_dup!(proof);
-							proof = map.next_value()?
-						}
-						Field::ProofHash => {
-							no_dup!(proof_hash);
-							proof_hash = Some(map.next_value()?)
-						}
-						Field::BlockHeight => {
-							no_dup!(block_height);
-							block_height = Some(map.next_value()?)
-						}
-						Field::MerkleProof => {
-							no_dup!(merkle_proof);
-							if let Some(hex) = map.next_value::<Option<String>>()? {
-								if let Ok(res) = MerkleProof::from_hex(&hex) {
-									merkle_proof = Some(res);
-								} else {
-									merkle_proof = Some(MerkleProof::empty());
-								}
-							}
-						}
-						Field::MmrIndex => {
-							no_dup!(mmr_index);
-							mmr_index = Some(map.next_value()?)
-						}
-					}
-				}
-
-				if output_type.is_none()
-					|| commit.is_none() || spent.is_none()
-					|| proof_hash.is_none()
-					|| mmr_index.is_none()
-				{
-					return Err(serde::de::Error::custom("invalid output"));
-				}
-
-				Ok(OutputPrintable {
-					output_type: output_type.unwrap(),
-					commit: commit.unwrap(),
-					spent: spent.unwrap(),
-					proof: proof,
-					proof_hash: proof_hash.unwrap(),
-					block_height: block_height,
-					merkle_proof: merkle_proof,
-					mmr_index: mmr_index.unwrap(),
-				})
-			}
-		}
-
-		const FIELDS: &'static [&'static str] = &[
-			"output_type",
-			"commit",
-			"spent",
-			"proof",
-			"proof_hash",
-			"mmr_index",
-		];
-		deserializer.deserialize_struct("OutputPrintable", FIELDS, OutputPrintableVisitor)
 	}
 }
 
@@ -721,20 +573,41 @@ mod test {
 
 	#[test]
 	fn serialize_output_printable() {
-		let hex_output =
-			"{\
-			 \"output_type\":\"Coinbase\",\
-			 \"commit\":\"083eafae5d61a85ab07b12e1a51b3918d8e6de11fc6cde641d54af53608aa77b9f\",\
-			 \"spent\":false,\
-			 \"proof\":null,\
-			 \"proof_hash\":\"ed6ba96009b86173bade6a9227ed60422916593fa32dd6d78b25b7a4eeef4946\",\
-			 \"block_height\":0,\
-			 \"merkle_proof\":null,\
-			 \"mmr_index\":0\
-			 }";
-		let deserialized: OutputPrintable = serde_json::from_str(&hex_output).unwrap();
-		let serialized = serde_json::to_string(&deserialized).unwrap();
-		assert_eq!(serialized, hex_output);
+		let hex_output = r#"
+			{
+			  "output_type": "Coinbase",
+			  "commit": "0897277036f04d54c85df2b8957e08167c37f35d2bb88248a10cf34a7043d97c30",
+			  "spent": false,
+			  "proof": null,
+			  "proof_hash": "",
+			  "block_height": 222796,
+			  "merkle_proof": {
+				"mmr_size": 600752,
+				"path": [
+				  "5c92c4a5d32186edb925dee9164d34947071fe33a42dc4b763a3d00f4f540c13",
+				  "a49c9fa583b3438a829892f702fc8c284551ef7e4242d114c001bb567d916d57",
+				  "f2793d2e68ded32ce5ddae56810bd0bdfe099e561c1599eb11d767fcac0d29ab",
+				  "c50852c15f7a13f59c1e6bd0ad70b814c9236b0d05fb781b426a4a46f1813425",
+				  "6f119eb0567b2efca31b60ad4a7ce97d567ed55d85cf0e71bc2a6ddc1e7359a2",
+				  "0d8da5310beaa3d604dd06459b26b66551dd800416c0db28e0a14e3a29541dab",
+				  "6399f2e3b77f6d3f1a1d1c4477c41b2830182bde020ef21c091dcbef8adbee70",
+				  "002e329181899fa4b72be0502aa4e6d6b08fa6dd2526fb958a7e326f8974d983",
+				  "49a49c6f7dbb41024f500ca1a8b2e118c4508d32345f33b4e913ff91110da8f6",
+				  "211cf80c89de5b6bed3157ac4330cf88fb018b3c6d2c00f93781a60d280c68fb",
+				  "a6d1f3c8d778dcd8861cc162c1c99c421654e601c67e3c36343685163aa6e5e4",
+				  "14bda618f823948c7a1e6cdf4651eab5ce95d2afe31fed49d316ed924e3edf68",
+				  "877c051e829ed8f44a355ad54938595b81bd73fe502e4f6e8a793299b45da5a2",
+				  "13444cfddc56bdc98a9911b31731f2cad0218e55b53eeb054b5d843fa742f5dc"
+				]
+			  },
+			  "mmr_index": 599956
+			}
+		"#;
+		let output: OutputPrintable = serde_json::from_str(&hex_output).unwrap();
+		let serialized = serde_json::to_string_pretty(&output).unwrap();
+		println!("serialized OutputPrintable: {}", serialized);
+		let deserialized_output: OutputPrintable = serde_json::from_str(&serialized).unwrap();
+		assert_eq!(output, deserialized_output);
 	}
 
 	#[test]
