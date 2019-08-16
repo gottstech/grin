@@ -27,6 +27,7 @@ use self::chain_api::ChainCompactHandler;
 use self::chain_api::ChainHandler;
 use self::chain_api::ChainValidationHandler;
 use self::chain_api::OutputHandler;
+use self::chain_api::TxKernelHandler;
 use self::peers_api::PeerHandler;
 use self::peers_api::PeersAllHandler;
 use self::peers_api::PeersConnectedHandler;
@@ -98,6 +99,7 @@ pub fn build_router(
 		"get chain/validate".to_string(),
 		"get chain/outputs/byids?id=xxx,yyy,zzz".to_string(),
 		"get chain/outputs/byheight?start_height=101&end_height=200".to_string(),
+		"get chain/kernels/byids?id=xxx,yyy,zzz".to_string(),
 		"get status".to_string(),
 		"get txhashset/roots".to_string(),
 		"get txhashset/lastoutputs?n=10".to_string(),
@@ -117,6 +119,10 @@ pub fn build_router(
 	let index_handler = IndexHandler { list: route_list };
 
 	let output_handler = OutputHandler {
+		chain: Arc::downgrade(&chain),
+	};
+
+	let txkernel_handler = TxKernelHandler {
 		chain: Arc::downgrade(&chain),
 	};
 
@@ -171,6 +177,7 @@ pub fn build_router(
 	router.add_route("/v1/headers/*", Arc::new(header_handler))?;
 	router.add_route("/v1/chain", Arc::new(chain_tip_handler))?;
 	router.add_route("/v1/chain/outputs/*", Arc::new(output_handler))?;
+	router.add_route("/v1/chain/kernels/*", Arc::new(txkernel_handler))?;
 	router.add_route("/v1/chain/compact", Arc::new(chain_compact_handler))?;
 	router.add_route("/v1/chain/validate", Arc::new(chain_validation_handler))?;
 	router.add_route("/v1/txhashset/*", Arc::new(txhashset_handler))?;

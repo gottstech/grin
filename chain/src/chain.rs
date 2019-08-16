@@ -19,7 +19,8 @@ use crate::core::core::hash::{Hash, Hashed, ZERO_HASH};
 use crate::core::core::merkle_proof::MerkleProof;
 use crate::core::core::verifier_cache::VerifierCache;
 use crate::core::core::{
-	Block, BlockHeader, BlockSums, Committed, Output, OutputIdentifier, Transaction, TxKernelEntry,
+	Block, BlockHeader, BlockSums, Committed, Output, OutputIdentifier, Transaction,
+	TxKernelApiEntry, TxKernelEntry,
 };
 use crate::core::global;
 use crate::core::pow;
@@ -1051,6 +1052,10 @@ impl Chain {
 		// here b is a block
 		for (_, b) in batch.blocks_iter()? {
 			if b.header.height < tail.height {
+				for kernel in b.kernels() {
+					// also remove tx kernel position indexes for this block
+					let _ = batch.delete_txkernel_pos_height(&kernel.excess);
+				}
 				let _ = batch.delete_block(&b.hash());
 				count += 1;
 			}
@@ -1245,6 +1250,22 @@ impl Chain {
 		Ok(hash)
 	}
 
+	/// Gets the tx kernel for the provided excess.
+	/// Note: Takes a read lock on the txhashset.
+	/// Take care not to call this repeatedly in a tight loop.
+	pub fn get_txkernel_by_excess(&self, excess: &Commitment) -> Result<TxKernelApiEntry, Error> {
+		let pos_height = self.store.get_txkernel_pos_height(excess)?;
+		let txhashset = self.txhashset.read();
+		let tx_kernel_api_entry = TxKernelApiEntry {
+			height: pos_height.1,
+			kernel: txhashset
+				.txkernel_by_insertion_index(pos_height.0)
+				.ok_or(ErrorKind::TxKernelNotFound)?
+				.kernel,
+		};
+		Ok(tx_kernel_api_entry)
+	}
+
 	/// Migrate the index 'commitment -> output_pos' to index 'commitment -> (output_pos, block_height)'
 	/// Note: should only be called in two cases:
 	///     - Node start-up. For database migration from the old version.
@@ -1293,6 +1314,79 @@ impl Chain {
 
 		batch.commit()?;
 		debug!("rebuild_height_for_pos: done");
+		Ok(())
+	}
+
+	/// Build a tx kernel MMR position index.
+	/// Note:
+	///   * this function should only be called when node start-up
+	///   * this index only contain the tx kernels for full blocks stored in this node.
+	pub fn build_txkernel_pos(&self) -> Result<(), Error> {
+		let max_height = self.head()?.height;
+		if max_height == 0 {
+			return Ok(());
+		}
+
+		let txhashset = self.txhashset.read();
+		// todo: check why the tail is not on the chain db, instead tail+1 is
+		let tail = txhashset.get_header_by_height(self.tail()?.height + 1)?;
+		let mut need_build = false;
+		if let Ok(b) = self.get_block(&tail.hash()) {
+			for kernel in b.kernels() {
+				if self
+					.store()
+					.get_txkernel_pos_height(&kernel.excess)
+					.is_err()
+				{
+					need_build = true;
+					break;
+				}
+			}
+		} else {
+			error!(
+				"build_txkernel_pos: block {}@{} not found on chain db",
+				tail.hash(),
+				tail.height,
+			);
+		}
+
+		if !need_build {
+			debug!(
+				"build_txkernel_pos: nothing to be rebuilt. tail height: {}",
+				tail.height
+			);
+			return Ok(());
+		}
+
+		let min_height = tail.height;
+		debug!(
+			"build_txkernel_pos: building {} blocks tx kernel mmr positions index...",
+			1 + max_height - min_height,
+		);
+
+		let batch = self.store.batch()?;
+
+		let mut pos = txhashset
+			.get_header_by_height(min_height - 1)?
+			.kernel_mmr_size
+			+ 1;
+		let start_pos = pos;
+		for height in min_height..=max_height {
+			let kernel_mmr_size = txhashset.get_header_by_height(height)?.kernel_mmr_size;
+			while pos <= kernel_mmr_size {
+				// Note: 1-based and not 0-based, here must be '<=' instead of '<'
+				if let Some(entry) = txhashset.txkernel_by_insertion_index(pos) {
+					batch.save_txkernel_pos_height(&entry.kernel.excess, pos, height)?;
+				}
+				pos += 1;
+			}
+		}
+		batch.commit()?;
+		debug!(
+			"build_txkernel_pos: done. stored {} position index in db, total kernel mmr size: {}",
+			pos - start_pos,
+			pos - 1,
+		);
 		Ok(())
 	}
 

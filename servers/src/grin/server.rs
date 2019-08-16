@@ -190,6 +190,8 @@ impl Server {
 
 		// launching the database migration if needed
 		shared_chain.rebuild_height_for_pos()?;
+		// build the tx kernel mmr position index if needed
+		shared_chain.build_txkernel_pos()?;
 
 		pool_adapter.set_chain(shared_chain.clone());
 

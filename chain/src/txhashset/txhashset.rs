@@ -270,6 +270,11 @@ impl TxHashSet {
 			.elements_from_insertion_index(start_index, max_count)
 	}
 
+	/// Returns a tx kernel from the given insertion (leaf) index.
+	pub fn txkernel_by_insertion_index(&self, index: u64) -> Option<TxKernelEntry> {
+		ReadonlyPMMR::at(&self.kernel_pmmr_h.backend, self.kernel_pmmr_h.last_pos).get_data(index)
+	}
+
 	/// Get MMR roots.
 	pub fn roots(&self) -> TxHashSetRoots {
 		let header_pmmr =
@@ -887,7 +892,9 @@ impl<'a> Extension<'a> {
 		}
 
 		for kernel in b.kernels() {
-			self.apply_kernel(kernel)?;
+			let pos = self.apply_kernel(kernel)?;
+			self.batch
+				.save_txkernel_pos_height(&kernel.excess, pos, b.header.height)?;
 		}
 
 		// Update the header on the extension to reflect the block we just applied.
@@ -969,11 +976,12 @@ impl<'a> Extension<'a> {
 	}
 
 	/// Push kernel onto MMR (hash and data files).
-	fn apply_kernel(&mut self, kernel: &TxKernel) -> Result<(), Error> {
-		self.kernel_pmmr
+	fn apply_kernel(&mut self, kernel: &TxKernel) -> Result<u64, Error> {
+		let kernel_pos = self
+			.kernel_pmmr
 			.push(kernel)
 			.map_err(&ErrorKind::TxHashSetErr)?;
-		Ok(())
+		Ok(kernel_pos)
 	}
 
 	fn apply_header(&mut self, header: &BlockHeader) -> Result<(), Error> {
