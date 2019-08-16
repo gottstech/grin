@@ -98,7 +98,7 @@ pub fn build_router(
 		// "post chain/compact".to_string(),
 		// "get chain/validate".to_string(),
 		"get chain/outputs/byids?id=xxx,yyy,zzz".to_string(),
-		"get chain/outputs/byheight?start_height=101&end_height=200".to_string(),
+		// "get chain/outputs/byheight?start_height=101&end_height=200".to_string(),
 		"get chain/kernels/byids?id=xxx,yyy,zzz".to_string(),
 		"get status".to_string(),
 		"get txhashset/roots".to_string(),
