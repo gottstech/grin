@@ -139,17 +139,17 @@ pub fn build_router(
 	let chain_tip_handler = ChainHandler {
 		chain: Arc::downgrade(&chain),
 	};
-	let chain_compact_handler = ChainCompactHandler {
+	let _chain_compact_handler = ChainCompactHandler {
 		chain: Arc::downgrade(&chain),
 	};
-	let chain_validation_handler = ChainValidationHandler {
+	let _chain_validation_handler = ChainValidationHandler {
 		chain: Arc::downgrade(&chain),
 	};
 	let status_handler = StatusHandler {
 		chain: Arc::downgrade(&chain),
 		peers: Arc::downgrade(&peers),
 	};
-	let kernel_download_handler = KernelDownloadHandler {
+	let _kernel_download_handler = KernelDownloadHandler {
 		peers: Arc::downgrade(&peers),
 	};
 	let txhashset_handler = TxHashSetHandler {
