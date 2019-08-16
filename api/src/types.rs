@@ -381,7 +381,7 @@ impl BlockHeaderInfo {
 	}
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct BlockHeaderPrintable {
 	// Hash
 	pub hash: String,

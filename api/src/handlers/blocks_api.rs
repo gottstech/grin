@@ -68,7 +68,7 @@ impl HeaderHandler {
 impl Handler for HeaderHandler {
 	fn get(&self, req: Request<Body>) -> ResponseFuture {
 		let el = right_path_element!(req);
-		result_to_response(self.get_header(el.to_string()))
+		result_with_cuckoo_solution_to_response(self.get_header(el.to_string()))
 	}
 }
 
@@ -143,9 +143,9 @@ impl Handler for BlockHandler {
 
 		if let Some(param) = req.uri().query() {
 			if param == "compact" {
-				result_to_response(self.get_compact_block(&h))
+				result_with_cuckoo_solution_to_response(self.get_compact_block(&h))
 			} else if param == "no_merkle_proof" {
-				result_to_response(self.get_block(&h, false))
+				result_with_cuckoo_solution_to_response(self.get_block(&h, false))
 			} else {
 				response(
 					StatusCode::BAD_REQUEST,
@@ -153,7 +153,7 @@ impl Handler for BlockHandler {
 				)
 			}
 		} else {
-			result_to_response(self.get_block(&h, true))
+			result_with_cuckoo_solution_to_response(self.get_block(&h, true))
 		}
 	}
 }
