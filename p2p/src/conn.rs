@@ -168,7 +168,7 @@ pub const SEND_CHANNEL_CAP: usize = 100;
 pub struct StopHandle {
 	/// Channel to close the connection
 	pub close_channel: mpsc::Sender<()>,
-	// we need Option to take ownhership of the handle in stop()
+	// we need Option to take ownership of the handle in stop()
 	peer_thread: Option<JoinHandle<()>>,
 }
 
@@ -261,7 +261,8 @@ pub fn listen<H>(
 where
 	H: MessageHandler,
 {
-	let (send_tx, send_rx) = mpsc::sync_channel(SEND_CHANNEL_CAP);
+	// Note: add 50% the actual send channel capability for stability and safety
+	let (send_tx, send_rx) = mpsc::sync_channel(SEND_CHANNEL_CAP + SEND_CHANNEL_CAP / 2);
 	let (close_tx, close_rx) = mpsc::channel();
 
 	stream
