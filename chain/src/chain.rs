@@ -587,8 +587,8 @@ impl Chain {
 	}
 
 	/// Return a merkle proof valid for the current output pmmr state at the
-	/// given pos
-	pub fn get_merkle_proof_for_pos(&self, commit: Commitment) -> Result<MerkleProof, Error> {
+	/// given output commitment
+	pub fn get_merkle_proof_for_output(&self, commit: Commitment) -> Result<MerkleProof, Error> {
 		let mut txhashset = self.txhashset.write();
 		txhashset.merkle_proof(commit)
 	}
@@ -1114,9 +1114,9 @@ impl Chain {
 		self.txhashset.read().last_n_kernel(distance)
 	}
 
-	/// as above, for kernels
-	pub fn get_output_pos(&self, commit: &Commitment) -> Result<u64, Error> {
-		Ok(self.txhashset.read().get_output_pos(commit)?)
+	/// Get the output mmr position and block height
+	pub fn get_output_pos_height(&self, commit: &Commitment) -> Result<(u64, u64), Error> {
+		Ok(self.txhashset.read().get_output_pos_height(commit)?)
 	}
 
 	/// outputs by insertion index

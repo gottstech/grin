@@ -300,7 +300,9 @@ impl OutputPrintable {
 			}
 		};
 
-		let output_pos = chain.get_output_pos(&output.commit).unwrap_or(0);
+		let output_pos_height = chain
+			.get_output_pos_height(&output.commit)
+			.unwrap_or((0, 0));
 
 		Ok(OutputPrintable {
 			output_type,
@@ -310,7 +312,7 @@ impl OutputPrintable {
 			proof_hash: util::to_hex(output.proof.hash().to_vec()),
 			block_height,
 			merkle_proof,
-			mmr_index: output_pos,
+			mmr_index: output_pos_height.0,
 		})
 	}
 
