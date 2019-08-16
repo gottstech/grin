@@ -162,6 +162,7 @@ impl OutputHandler {
 		Ok(outputs)
 	}
 
+	#[allow(dead_code)]
 	fn outputs_at_height(
 		&self,
 		block_height: u64,
@@ -201,6 +202,7 @@ impl OutputHandler {
 	}
 
 	// returns outputs for a specified range of blocks
+	#[allow(dead_code)]
 	fn outputs_block_batch(&self, req: &Request<Body>) -> Result<Vec<BlockOutputs>, Error> {
 		let mut commitments: Vec<Commitment> = vec![];
 
