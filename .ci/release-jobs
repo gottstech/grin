@@ -22,6 +22,9 @@ readonly JOB_ID="${TRAVIS_JOB_ID}"
 readonly OS_NAME="${TRAVIS_OS_NAME}"
 readonly TEST_RESULT="${TRAVIS_TEST_RESULT}"
 
+# To avoid uploading garbage files when 'release' job not enabled.
+cargo clean
+
 case "${CI_JOB}" in
     "release")
         # The release can only be triggered after successful completion of all tests.
