@@ -64,6 +64,7 @@ fn setup_with_status_adapter(dir_name: &str, genesis: Block, adapter: Arc<Status
 		pow::verify_size,
 		verifier_cache,
 		false,
+		true,
 	)
 	.unwrap();
 
@@ -77,7 +78,7 @@ fn mine_empty_chain() {
 	let chain = mine_chain(chain_dir, 1);
 	assert_eq!(chain.head().unwrap().height, 0);
 	clean_output_dir(chain_dir);
-}
+	}
 
 #[test]
 fn mine_short_chain() {
@@ -108,7 +109,7 @@ fn process_headers_first_with_fork() {
 	let b1 = prepare_block(&kc, &prev, &chain, 1);
 	chain
 		.process_block_header(&b1.header, chain::Options::SKIP_POW)
-		.unwrap();
+	.unwrap();
 
 	// Now mine a fork block and process this header.
 	// Note: We have not yet processed the competing full block.
@@ -126,7 +127,7 @@ fn process_headers_first_with_fork() {
 	// Now process the full block for b2.
 	chain
 		.process_block(b2.clone(), chain::Options::SKIP_POW)
-		.unwrap();
+				.unwrap();
 
 	// Check head reflects b2 as this is the winning full block at this height.
 	let head = chain.head().unwrap();
@@ -142,7 +143,7 @@ fn process_headers_first_with_fork() {
 		.unwrap();
 
 	// Check head still reflects b2 as this is the winning full block at this height.
-	let head = chain.head().unwrap();
+		let head = chain.head().unwrap();
 	assert_eq!(head, Tip::from_header(&b2.header));
 
 	// Check header_head *still* references b1 (still weird but ok).
@@ -631,6 +632,7 @@ fn actual_diff_iter_output() {
 		pow::verify_size,
 		verifier_cache,
 		false,
+		true,
 	)
 	.unwrap();
 	let iter = chain.difficulty_iter().unwrap();

@@ -53,6 +53,7 @@ fn test_coinbase_maturity() {
 			pow::verify_size,
 			verifier_cache,
 			false,
+			true,
 		)
 		.unwrap();
 

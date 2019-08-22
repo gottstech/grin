@@ -104,6 +104,14 @@ fn comments() -> HashMap<String, String> {
 	);
 
 	retval.insert(
+		"pruning_kernel_index".to_string(),
+		"
+#if in \"pruned node\" mode, whether pruning the tx kernel mmr position index
+"
+		.to_string(),
+	);
+
+	retval.insert(
 		"skip_sync_wait".to_string(),
 		"
 #skip waiting for sync on startup, (optional param, mostly for testing)
