@@ -154,6 +154,7 @@ pub struct Chain {
 	// POW verification function
 	pow_verifier: fn(&BlockHeader) -> Result<(), pow::Error>,
 	archive_mode: bool,
+	pruning_kernel_index: bool,
 	genesis: BlockHeader,
 }
 
@@ -168,6 +169,7 @@ impl Chain {
 		pow_verifier: fn(&BlockHeader) -> Result<(), pow::Error>,
 		verifier_cache: Arc<RwLock<dyn VerifierCache>>,
 		archive_mode: bool,
+		pruning_kernel_index: bool,
 	) -> Result<Chain, Error> {
 		let store = Arc::new(store::ChainStore::new(&db_root)?);
 
@@ -186,6 +188,7 @@ impl Chain {
 			pow_verifier,
 			verifier_cache,
 			archive_mode,
+			pruning_kernel_index,
 			genesis: genesis.header.clone(),
 		})
 	}
@@ -1052,9 +1055,11 @@ impl Chain {
 		// here b is a block
 		for (_, b) in batch.blocks_iter()? {
 			if b.header.height < tail.height {
-				for kernel in b.kernels() {
-					// also remove tx kernel position indexes for this block
-					let _ = batch.delete_txkernel_pos_height(&kernel.excess);
+				if self.pruning_kernel_index {
+					for kernel in b.kernels() {
+						// also remove tx kernel position indexes for this block
+						let _ = batch.delete_txkernel_pos_height(&kernel.excess);
+					}
 				}
 				let _ = batch.delete_block(&b.hash());
 				count += 1;

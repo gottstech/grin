@@ -147,6 +147,10 @@ impl Server {
 			None => false,
 			Some(b) => b,
 		};
+		let pruning_kernel_index = match config.pruning_kernel_index {
+			None => false,
+			Some(b) => b,
+		};
 
 		let stop_state = Arc::new(StopState::new());
 
@@ -186,6 +190,7 @@ impl Server {
 			pow::verify_size,
 			verifier_cache.clone(),
 			archive_mode,
+			pruning_kernel_index,
 		)?);
 
 		// launching the database migration if needed

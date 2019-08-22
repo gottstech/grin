@@ -165,6 +165,9 @@ pub struct ServerConfig {
 	/// Whether this node is a full archival node or a fast-sync, pruned node
 	pub archive_mode: Option<bool>,
 
+	/// If pruned node, whether pruning the tx kernel mmr position index
+	pub pruning_kernel_index: Option<bool>,
+
 	/// Whether to skip the sync timeout on startup
 	/// (To assist testing on solo chains)
 	pub skip_sync_wait: Option<bool>,
@@ -212,6 +215,7 @@ impl Default for ServerConfig {
 			stratum_mining_config: Some(StratumServerConfig::default()),
 			chain_type: ChainTypes::default(),
 			archive_mode: Some(false),
+			pruning_kernel_index: Some(true),
 			chain_validation_mode: ChainValidationMode::default(),
 			pool_config: pool::PoolConfig::default(),
 			skip_sync_wait: Some(false),

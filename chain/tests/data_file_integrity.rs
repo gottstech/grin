@@ -47,6 +47,7 @@ fn setup(dir_name: &str) -> Chain {
 		pow::verify_size,
 		verifier_cache,
 		false,
+		true,
 	)
 	.unwrap()
 }
@@ -60,6 +61,7 @@ fn reload_chain(dir_name: &str) -> Chain {
 		pow::verify_size,
 		verifier_cache,
 		false,
+		true,
 	)
 	.unwrap()
 }
