@@ -29,7 +29,9 @@ use crate::core::{Input, Output, OutputFeatures, Transaction, TxKernel};
 use crate::keychain::{BlindSum, BlindingFactor, Identifier, Keychain};
 use crate::libtx::proof::{self, ProofBuild};
 use crate::libtx::{aggsig, Error};
+use crate::util::Mutex;
 use grin_keychain::SwitchCommitmentType;
+use std::sync::Arc;
 
 /// Context information available to transaction combinators.
 pub struct Context<'a, K, B>
@@ -132,6 +134,78 @@ where
 				}),
 				kern,
 				sum.add_key_id(key_id.to_value_path(value)),
+			)
+		},
+	)
+}
+
+/// Adds multiple outputs with the provided value and key identifier from the
+/// keychain. Optimized by multiple threads.
+pub fn outputs<K, B>(amounts_and_keys: Vec<(u64, Identifier)>) -> Box<Append<K, B>>
+where
+	K: Keychain,
+	B: ProofBuild,
+{
+	const MAX_THREADS: usize = 3;
+	Box::new(
+		move |build, (tx, kern, sum)| -> (Transaction, TxKernel, BlindSum) {
+			let num_outputs = amounts_and_keys.len();
+			assert!(num_outputs > 0);
+
+			// Sum the blinding
+			let mut blind_sum = sum;
+			for (value, key_id) in &amounts_and_keys {
+				blind_sum = blind_sum.add_key_id(key_id.to_value_path(*value));
+			}
+
+			// Calculate how many threads needed.
+			let num_threads = if num_outputs < MAX_THREADS {
+				num_outputs
+			} else {
+				MAX_THREADS
+			};
+
+			// Split for threads
+			let chunk_size = std::cmp::max(1, (num_outputs + num_threads - 1) / num_threads);
+
+			// Collect all created outputs from worker threads
+			let outputs = Arc::new(Mutex::new(vec![]));
+			crossbeam::scope(|scope| {
+				for chunk in amounts_and_keys.chunks(chunk_size) {
+					let chunk = chunk.to_owned();
+
+					let keychain = build.keychain.clone();
+					let builder = build.builder.clone();
+					let outputs_arc = outputs.clone();
+					scope.spawn(move |_| {
+						for elem in chunk {
+							// TODO: proper support for different switch commitment schemes
+							let switch = &SwitchCommitmentType::Regular;
+							let commit = keychain.commit(elem.0, &elem.1, switch).unwrap();
+
+							debug!("Building output: {}, {:?}", elem.0, commit);
+
+							let rproof = proof::create(
+								&keychain, &builder, elem.0, &elem.1, switch, commit, None,
+							)
+							.unwrap();
+
+							let mut outputs = outputs_arc.lock();
+							outputs.push(Output {
+								features: OutputFeatures::Plain,
+								commit,
+								proof: rproof,
+							});
+						}
+					});
+				}
+			})
+			.expect("One of output building threads has panicked");
+
+			(
+				tx.with_outputs(outputs.clone().lock().to_vec()),
+				kern,
+				blind_sum,
 			)
 		},
 	)
