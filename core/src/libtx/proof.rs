@@ -100,7 +100,7 @@ where
 }
 
 /// Used for building proofs and checking if the output belongs to the wallet
-pub trait ProofBuild {
+pub trait ProofBuild: Sync + Send + Clone {
 	/// Create a BP nonce that will allow to rewind the derivation path and flags
 	fn rewind_nonce(&self, secp: &Secp256k1, commit: &Commitment) -> Result<SecretKey, Error>;
 
@@ -126,6 +126,7 @@ pub trait ProofBuild {
 }
 
 /// The new, more flexible proof builder
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ProofBuilder<'a, K>
 where
 	K: Keychain,
@@ -255,6 +256,7 @@ where
 }
 
 /// The legacy proof builder, used before the first hard fork
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LegacyProofBuilder<'a, K>
 where
 	K: Keychain,
