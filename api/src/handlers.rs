@@ -101,6 +101,7 @@ pub fn build_router(
 		"get chain/outputs/byids?id=xxx,yyy,zzz".to_string(),
 		"get chain/outputs/byheight?start_height=101&end_height=200".to_string(),
 		"get chain/kernels/byids?id=xxx,yyy,zzz".to_string(),
+		"get chain/kernel/XXX?min_height=YYY&max_height=ZZZ".to_string(),
 		"get status".to_string(),
 		"get txhashset/roots".to_string(),
 		"get txhashset/lastoutputs?n=10".to_string(),
@@ -180,7 +181,8 @@ pub fn build_router(
 	router.add_route("/v1/headers/*", Arc::new(header_handler))?;
 	router.add_route("/v1/chain", Arc::new(chain_tip_handler))?;
 	router.add_route("/v1/chain/outputs/*", Arc::new(output_handler))?;
-	router.add_route("/v1/chain/kernels/*", Arc::new(kernel_handler))?;
+	router.add_route("/v1/chain/kernels/*", Arc::new(txkernel_handler))?;
+	router.add_route("/v1/chain/kernel/*", Arc::new(kernel_handler))?;
 	router.add_route("/v1/chain/compact", Arc::new(chain_compact_handler))?;
 	router.add_route("/v1/chain/validate", Arc::new(chain_validation_handler))?;
 	router.add_route("/v1/txhashset/*", Arc::new(txhashset_handler))?;

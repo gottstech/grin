@@ -244,7 +244,7 @@ impl Handler for OutputHandler {
 }
 
 /// Kernel handler, search for a kernel by excess commitment
-/// GET /v1/chain/kernels/XXX?min_height=YYY&max_height=ZZZ
+/// GET /v1/chain/kernel/XXX?min_height=YYY&max_height=ZZZ
 /// The `min_height` and `max_height` parameters are optional
 pub struct KernelHandler {
 	pub chain: Weak<chain::Chain>,
