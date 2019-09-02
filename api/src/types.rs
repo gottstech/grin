@@ -17,6 +17,7 @@ use std::sync::Arc;
 use crate::chain;
 use crate::core::core::hash::Hashed;
 use crate::core::core::merkle_proof::MerkleProof;
+use crate::core::core::{KernelFeatures, TxKernel};
 use crate::core::{core, libtx::secp_ser, ser};
 use crate::p2p;
 use crate::util;
@@ -73,7 +74,7 @@ pub struct Status {
 impl Status {
 	pub fn from_tip_and_peers(current_tip: chain::Tip, connections: u32) -> Status {
 		Status {
-			protocol_version: p2p::msg::ProtocolVersion::default().into(),
+			protocol_version: ser::ProtocolVersion::local().into(),
 			user_agent: p2p::msg::USER_AGENT.to_string(),
 			connections: connections,
 			tip: Tip::from_tip(current_tip),
@@ -343,10 +344,16 @@ pub struct TxKernelPrintable {
 
 impl TxKernelPrintable {
 	pub fn from_txkernel(k: &core::TxKernel) -> TxKernelPrintable {
+		let features = k.features.as_string();
+		let (fee, lock_height) = match k.features {
+			KernelFeatures::Plain { fee } => (fee, 0),
+			KernelFeatures::Coinbase => (0, 0),
+			KernelFeatures::HeightLocked { fee, lock_height } => (fee, lock_height),
+		};
 		TxKernelPrintable {
-			features: format!("{:?}", k.features),
-			fee: k.fee,
-			lock_height: k.lock_height,
+			features,
+			fee,
+			lock_height,
 			excess: util::to_hex(k.excess.0.to_vec()),
 			excess_sig: util::to_hex(k.excess_sig.to_raw_data().to_vec()),
 		}
@@ -544,6 +551,13 @@ pub struct OutputListing {
 	pub last_retrieved_index: u64,
 	/// A printable version of the outputs
 	pub outputs: Vec<OutputPrintable>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct LocatedTxKernel {
+	pub tx_kernel: TxKernel,
+	pub height: u64,
+	pub mmr_index: u64,
 }
 
 #[derive(Serialize, Deserialize)]
