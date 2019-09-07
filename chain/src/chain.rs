@@ -1319,17 +1319,17 @@ impl Chain {
 			return Ok(());
 		}
 
+		let header_pmmr = self.header_pmmr.read();
 		let txhashset = self.txhashset.read();
+		let batch = self.store.batch()?;
+
 		// todo: check why the tail is not on the chain db, instead tail+1 is
-		let tail = txhashset.get_header_by_height(self.tail()?.height + 1)?;
+		let hash = header_pmmr.get_header_hash_by_height(self.tail()?.height + 1)?;
+		let tail = batch.get_block_header(&hash)?;
 		let mut need_build = false;
 		if let Ok(b) = self.get_block(&tail.hash()) {
 			for kernel in b.kernels() {
-				if self
-					.store()
-					.get_txkernel_pos_height(&kernel.excess)
-					.is_err()
-				{
+				if batch.get_txkernel_pos_height(&kernel.excess).is_err() {
 					need_build = true;
 					break;
 				}
@@ -1356,15 +1356,12 @@ impl Chain {
 			1 + max_height - min_height,
 		);
 
-		let batch = self.store.batch()?;
-
-		let mut pos = txhashset
-			.get_header_by_height(min_height - 1)?
-			.kernel_mmr_size
-			+ 1;
+		let hash = header_pmmr.get_header_hash_by_height(min_height - 1)?;
+		let mut pos = batch.get_block_header(&hash)?.kernel_mmr_size + 1;
 		let start_pos = pos;
 		for height in min_height..=max_height {
-			let kernel_mmr_size = txhashset.get_header_by_height(height)?.kernel_mmr_size;
+			let hash = header_pmmr.get_header_hash_by_height(height)?;
+			let kernel_mmr_size = batch.get_block_header(&hash)?.kernel_mmr_size;
 			while pos <= kernel_mmr_size {
 				// Note: 1-based and not 0-based, here must be '<=' instead of '<'
 				if let Some(entry) = txhashset.txkernel_by_insertion_index(pos) {
