@@ -20,7 +20,7 @@ use crate::core::core::merkle_proof::MerkleProof;
 use crate::core::core::verifier_cache::VerifierCache;
 use crate::core::core::{
 	Block, BlockHeader, BlockSums, Committed, Output, OutputIdentifier, Transaction, TxKernel,
-	TxKernelApiEntry, TxKernelEntry,
+	TxKernelApiEntry,
 };
 use crate::core::global;
 use crate::core::pow;
@@ -178,9 +178,24 @@ impl Chain {
 		// open the txhashset, creating a new one if necessary
 		let mut txhashset = txhashset::TxHashSet::open(db_root.clone(), store.clone(), None)?;
 
-		let mut header_pmmr =
-			PMMRHandle::new(&db_root, "header", "header_head", false, true, None)?;
-		let mut sync_pmmr = PMMRHandle::new(&db_root, "header", "sync_head", false, true, None)?;
+		let mut header_pmmr = PMMRHandle::new(
+			&db_root,
+			"header",
+			"header_head",
+			false,
+			true,
+			ProtocolVersion(1),
+			None,
+		)?;
+		let mut sync_pmmr = PMMRHandle::new(
+			&db_root,
+			"header",
+			"sync_head",
+			false,
+			true,
+			ProtocolVersion(1),
+			None,
+		)?;
 
 		setup_head(
 			&genesis,
@@ -666,7 +681,7 @@ impl Chain {
 	pub fn kernel_data_write(&self, reader: &mut dyn Read) -> Result<(), Error> {
 		let mut count = 0;
 		let mut stream = StreamingReader::new(reader, ProtocolVersion::local());
-		while let Ok(_kernel) = TxKernelEntry::read(&mut stream) {
+		while let Ok(_kernel) = TxKernel::read(&mut stream) {
 			count += 1;
 		}
 
@@ -1157,7 +1172,7 @@ impl Chain {
 	}
 
 	/// as above, for kernels
-	pub fn get_last_n_kernel(&self, distance: u64) -> Vec<(Hash, TxKernelEntry)> {
+	pub fn get_last_n_kernel(&self, distance: u64) -> Vec<(Hash, TxKernel)> {
 		self.txhashset.read().last_n_kernel(distance)
 	}
 
