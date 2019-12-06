@@ -83,6 +83,8 @@ where
 				StatusCode::INTERNAL_SERVER_ERROR,
 				format!("can't create json response: {}", e),
 			),
+			// place holder
+			ErrorKind::Router(_) => response(StatusCode::INTERNAL_SERVER_ERROR, ""),
 		},
 		Err(e) => response_on_error(e),
 	}
