@@ -84,8 +84,8 @@ impl Handler for ChainCompactHandler {
 }
 
 // Supports retrieval of multiple tx kernels in a single request -
-// GET /v1/chain/kernels/byids?id=xxx,yyy,zzz
-// GET /v1/chain/kernels/byids?id=xxx&id=yyy&id=zzz
+// GET /v1/chain/kernel/byids?id=xxx,yyy,zzz
+// GET /v1/chain/kernel/byids?id=xxx&id=yyy&id=zzz
 pub struct TxKernelHandler {
 	pub chain: Weak<chain::Chain>,
 }
@@ -246,7 +246,7 @@ impl Handler for OutputHandler {
 }
 
 /// Kernel handler, search for a kernel by excess commitment
-/// GET /v1/chain/kernel/XXX?min_height=YYY&max_height=ZZZ
+/// GET /v1/chain/kernels/XXX?min_height=YYY&max_height=ZZZ
 /// The `min_height` and `max_height` parameters are optional
 pub struct KernelHandler {
 	pub chain: Weak<chain::Chain>,
