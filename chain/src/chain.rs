@@ -1292,8 +1292,7 @@ impl Chain {
 			height: pos_height.1,
 			kernel: txhashset
 				.txkernel_by_insertion_index(pos_height.0)
-				.ok_or(ErrorKind::TxKernelNotFound)?
-				.kernel,
+				.ok_or(ErrorKind::TxKernelNotFound)?,
 		};
 		Ok(tx_kernel_api_entry)
 	}
@@ -1418,7 +1417,7 @@ impl Chain {
 			while pos <= kernel_mmr_size {
 				// Note: 1-based and not 0-based, here must be '<=' instead of '<'
 				if let Some(entry) = txhashset.txkernel_by_insertion_index(pos) {
-					batch.save_txkernel_pos_height(&entry.kernel.excess, pos, height)?;
+					batch.save_txkernel_pos_height(&entry.excess, pos, height)?;
 				}
 				pos += 1;
 			}

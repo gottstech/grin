@@ -302,7 +302,7 @@ impl TxHashSet {
 	}
 
 	/// Returns a tx kernel from the given insertion (leaf) index.
-	pub fn txkernel_by_insertion_index(&self, index: u64) -> Option<TxKernelEntry> {
+	pub fn txkernel_by_insertion_index(&self, index: u64) -> Option<TxKernel> {
 		ReadonlyPMMR::at(&self.kernel_pmmr_h.backend, self.kernel_pmmr_h.last_pos).get_data(index)
 	}
 
