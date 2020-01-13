@@ -174,7 +174,7 @@ impl ChainStore {
 		option_to_not_found(
 			self.db
 				.get_ser(&to_key(TXKERNEL_POS_PREFIX, &mut excess.as_ref().to_vec())),
-			"TxKernel pos",
+			|| "TxKernel pos".to_owned(),
 		)
 	}
 
@@ -397,7 +397,7 @@ impl<'a> Batch<'a> {
 		option_to_not_found(
 			self.db
 				.get_ser(&to_key(TXKERNEL_POS_PREFIX, &mut excess.as_ref().to_vec())),
-			"TxKernel pos",
+			|| "TxKernel pos".to_owned(),
 		)
 	}
 
