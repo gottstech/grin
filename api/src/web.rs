@@ -33,8 +33,7 @@ fn response_on_error(e: Error) -> ResponseFuture {
 		ErrorKind::Argument(msg) => response(StatusCode::BAD_REQUEST, msg.clone()),
 		ErrorKind::RequestError(msg) => response(StatusCode::BAD_REQUEST, msg.clone()),
 		ErrorKind::NotFound => response(StatusCode::NOT_FOUND, ""),
-		ErrorKind::Internal(msg) => response(StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
-		ErrorKind::ResponseError(msg) => response(StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
+		_ => response(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
 	}
 }
 
@@ -83,8 +82,6 @@ where
 				StatusCode::INTERNAL_SERVER_ERROR,
 				format!("can't create json response: {}", e),
 			),
-			// place holder
-			ErrorKind::Router(_) => response(StatusCode::INTERNAL_SERVER_ERROR, ""),
 		},
 		Err(e) => response_on_error(e),
 	}
