@@ -17,6 +17,7 @@
 //! Primary hash function used in the protocol
 //!
 
+use crate::libtx::secp_ser;
 use crate::ser::{
 	self, AsFixedBytes, Error, FixedLength, ProtocolVersion, Readable, Reader, Writeable, Writer,
 };
