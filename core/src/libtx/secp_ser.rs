@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
 
 //! Sane serialization & deserialization of cryptographic structs into hex
 
-use crate::keychain::BlindingFactor;
-use crate::serde::{Deserialize, Deserializer, Serializer};
-use crate::util::secp::pedersen::{Commitment, RangeProof};
-use crate::util::{from_hex, to_hex};
+use keychain::BlindingFactor;
+use serde::{Deserialize, Deserializer, Serializer};
 use std::fmt;
+use util::secp::pedersen::{Commitment, RangeProof};
+use util::{from_hex, to_hex};
 
 struct ExpectedString(pub String);
 impl serde::de::Expected for ExpectedString {
@@ -29,9 +29,9 @@ impl serde::de::Expected for ExpectedString {
 
 /// Serializes a secp PublicKey to and from hex
 pub mod pubkey_serde {
-	use crate::serde::{Deserialize, Deserializer, Serializer};
-	use crate::util::secp::key::PublicKey;
-	use crate::util::{from_hex, static_secp_instance, to_hex};
+	use serde::{Deserialize, Deserializer, Serializer};
+	use util::secp::key::PublicKey;
+	use util::{from_hex, static_secp_instance, to_hex};
 
 	///
 	pub fn serialize<S>(key: &PublicKey, serializer: S) -> Result<S::Ok, S::Error>
@@ -63,8 +63,8 @@ pub mod pubkey_serde {
 /// Serializes an Option<secp::Signature> to and from hex
 pub mod option_sig_serde {
 	use crate::serde::{Deserialize, Deserializer, Serializer};
-	use crate::util::{from_hex, secp, static_secp_instance, to_hex};
 	use serde::de::Error;
+	use util::{from_hex, secp, static_secp_instance, to_hex};
 
 	///
 	pub fn serialize<S>(sig: &Option<secp::Signature>, serializer: S) -> Result<S::Ok, S::Error>
@@ -101,14 +101,13 @@ pub mod option_sig_serde {
 			None => Ok(None),
 		})
 	}
-
 }
 
 /// Serializes an Option<secp::SecretKey> to and from hex
 pub mod option_seckey_serde {
 	use crate::serde::{Deserialize, Deserializer, Serializer};
-	use crate::util::{from_hex, secp, static_secp_instance, to_hex};
 	use serde::de::Error;
+	use util::{from_hex, secp, static_secp_instance, to_hex};
 
 	///
 	pub fn serialize<S>(
@@ -149,8 +148,8 @@ pub mod option_seckey_serde {
 /// Serializes a secp::Signature to and from hex
 pub mod sig_serde {
 	use crate::serde::{Deserialize, Deserializer, Serializer};
-	use crate::util::{from_hex, secp, static_secp_instance, to_hex};
 	use serde::de::Error;
+	use util::{from_hex, secp, static_secp_instance, to_hex};
 
 	///
 	pub fn serialize<S>(sig: &secp::Signature, serializer: S) -> Result<S::Ok, S::Error>
@@ -180,6 +179,37 @@ pub mod sig_serde {
 	}
 }
 
+/// Serializes an Option<secp::Commitment> to and from hex
+pub mod option_commitment_serde {
+	use crate::serde::{Deserialize, Deserializer, Serializer};
+	use serde::de::Error;
+	use util::secp::pedersen::Commitment;
+	use util::{from_hex, to_hex};
+
+	///
+	pub fn serialize<S>(commit: &Option<Commitment>, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		match commit {
+			Some(c) => serializer.serialize_str(&to_hex(c.0.to_vec())),
+			None => serializer.serialize_none(),
+		}
+	}
+
+	///
+	pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Commitment>, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		Option::<String>::deserialize(deserializer).and_then(|res| match res {
+			Some(string) => from_hex(string.to_string())
+				.map_err(|err| Error::custom(err.to_string()))
+				.and_then(|bytes: Vec<u8>| Ok(Some(Commitment::from_vec(bytes.to_vec())))),
+			None => Ok(None),
+		})
+	}
+}
 /// Creates a BlindingFactor from a hex string
 pub fn blind_from_hex<'de, D>(deserializer: D) -> Result<BlindingFactor, D::Error>
 where
@@ -348,9 +378,9 @@ pub mod opt_string_or_u64 {
 mod test {
 	use super::*;
 	use crate::libtx::aggsig;
-	use crate::util::secp::key::{PublicKey, SecretKey};
-	use crate::util::secp::{Message, Signature};
-	use crate::util::static_secp_instance;
+	use util::secp::key::{PublicKey, SecretKey};
+	use util::secp::{Message, Signature};
+	use util::static_secp_instance;
 
 	use serde_json;
 
@@ -364,6 +394,8 @@ mod test {
 		pub pub_key: PublicKey,
 		#[serde(with = "option_sig_serde")]
 		pub opt_sig: Option<Signature>,
+		#[serde(with = "option_commitment_serde")]
+		pub opt_commit: Option<Commitment>,
 		#[serde(with = "sig_serde")]
 		pub sig: Signature,
 		#[serde(with = "string_or_u64")]
@@ -381,10 +413,15 @@ mod test {
 			thread_rng().fill(&mut msg);
 			let msg = Message::from_slice(&msg).unwrap();
 			let sig = aggsig::sign_single(&secp, &msg, &sk, None, None).unwrap();
+			let mut commit = [0u8; 33];
+			commit[0] = 0x09;
+			thread_rng().fill(&mut commit[1..]);
+			let commit = Commitment::from_vec(commit.to_vec());
 			SerTest {
 				opt_skey: Some(sk.clone()),
 				pub_key: PublicKey::from_secret_key(&secp, &sk).unwrap(),
 				opt_sig: Some(sig.clone()),
+				opt_commit: Some(commit),
 				sig: sig.clone(),
 				num: 30,
 				opt_num: Some(33),

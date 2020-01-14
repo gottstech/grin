@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -444,6 +444,12 @@ impl Pool {
 	/// Size of the pool.
 	pub fn size(&self) -> usize {
 		self.entries.len()
+	}
+
+	/// Number of transaction kernels in the pool.
+	/// This may differ from the size (number of transactions) due to tx aggregation.
+	pub fn kernel_count(&self) -> usize {
+		self.entries.iter().map(|x| x.tx.kernels().len()).sum()
 	}
 
 	/// Is the pool empty?

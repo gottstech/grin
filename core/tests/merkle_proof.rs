@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-mod vec_backend;
+mod common;
 
 use self::core::core::merkle_proof::MerkleProof;
-use self::core::core::pmmr::PMMR;
+use self::core::core::pmmr::{VecBackend, PMMR};
 use self::core::ser::{self, PMMRIndexHashable};
-use crate::vec_backend::{TestElem, VecBackend};
+use crate::common::TestElem;
 use grin_core as core;
 
 #[test]

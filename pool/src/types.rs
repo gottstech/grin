@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ fn default_mineable_max_weight() -> usize {
 
 /// Represents a single entry in the pool.
 /// A single (possibly aggregated) transaction.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PoolEntry {
 	/// Info on where this tx originated from.
 	pub src: TxSource,
@@ -165,7 +165,7 @@ pub struct PoolEntry {
 ///
 /// Most likely this will evolve to contain some sort of network identifier,
 /// once we get a better sense of what transaction building might look like.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum TxSource {
 	PushApi,
 	Broadcast,

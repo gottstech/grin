@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,14 +16,13 @@
 //! reward.
 use crate::consensus::reward;
 use crate::core::{KernelFeatures, Output, OutputFeatures, TxKernel};
-use crate::keychain::{Identifier, Keychain};
 use crate::libtx::error::Error;
 use crate::libtx::{
 	aggsig,
 	proof::{self, ProofBuild},
 };
-use crate::util::{secp, static_secp_instance};
-use grin_keychain::SwitchCommitmentType;
+use keychain::{Identifier, Keychain, SwitchCommitmentType};
+use util::{secp, static_secp_instance};
 
 /// output a reward output
 pub fn output<K, B>(

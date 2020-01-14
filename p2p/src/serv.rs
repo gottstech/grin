@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -84,6 +84,14 @@ impl Server {
 
 			match listener.accept() {
 				Ok((stream, peer_addr)) => {
+					// We want out TCP stream to be in blocking mode.
+					// The TCP listener is in nonblocking mode so we *must* explicitly
+					// move the accepted TCP stream into blocking mode (or all kinds of
+					// bad things can and will happen).
+					// A nonblocking TCP listener will accept nonblocking TCP streams which
+					// we do not want.
+					stream.set_nonblocking(false)?;
+
 					let peer_addr = PeerAddr(peer_addr);
 
 					if self.check_undesirable(&stream) {
@@ -224,9 +232,21 @@ impl Server {
 				debug!("Peer {} banned, refusing connection.", peer_addr);
 				return true;
 			}
-			if self.peers.is_known(peer_addr) {
-				debug!("Peer {} already known, refusing connection.", peer_addr);
-				return true;
+			// The call to is_known() can fail due to contention on the peers map.
+			// If it fails we want to default to refusing the connection.
+			match self.peers.is_known(peer_addr) {
+				Ok(true) => {
+					debug!("Peer {} already known, refusing connection.", peer_addr);
+					return true;
+				}
+				Err(_) => {
+					error!(
+						"Peer {} is_known check failed, refusing connection.",
+						peer_addr
+					);
+					return true;
+				}
+				_ => (),
 			}
 		}
 		false
@@ -284,7 +304,12 @@ impl ChainAdapter for DummyAdapter {
 	) -> Result<bool, chain::Error> {
 		Ok(true)
 	}
-	fn block_received(&self, _: core::Block, _: &PeerInfo, _: bool) -> Result<bool, chain::Error> {
+	fn block_received(
+		&self,
+		_: core::Block,
+		_: &PeerInfo,
+		_: chain::Options,
+	) -> Result<bool, chain::Error> {
 		Ok(true)
 	}
 	fn headers_received(

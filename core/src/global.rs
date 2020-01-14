@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,13 +24,15 @@ use crate::consensus::{
 };
 use crate::core::block::HeaderVersion;
 use crate::pow::{
-	self, new_cuckaroo_ctx, new_cuckarood_ctx, new_cuckatoo_ctx, EdgeType, PoWContext,
+	self, new_cuckaroo_ctx, new_cuckarood_ctx, new_cuckaroom_ctx, new_cuckatoo_ctx, EdgeType,
+	PoWContext,
 };
+use util::RwLock;
+
 /// An enum collecting sets of parameters used throughout the
 /// code wherever mining is needed. This should allow for
 /// different sets of parameters for different purposes,
 /// e.g. CI, User testing, production values
-use crate::util::RwLock;
 /// Define these here, as they should be developer-set, not really tweakable
 /// by users
 
@@ -38,14 +40,14 @@ use crate::util::RwLock;
 /// We negotiate compatible versions with each peer via Hand/Shake.
 /// Note: We also use a specific (possible different) protocol version
 /// for both the backend database and MMR data files.
-/// This one is p2p layer specific.
-pub const PROTOCOL_VERSION: u32 = 1;
+/// This defines the p2p layer protocol version for this node.
+pub const PROTOCOL_VERSION: u32 = 2;
 
 /// Automated testing edge_bits
-pub const AUTOMATED_TESTING_MIN_EDGE_BITS: u8 = 9;
+pub const AUTOMATED_TESTING_MIN_EDGE_BITS: u8 = 10;
 
 /// Automated testing proof size
-pub const AUTOMATED_TESTING_PROOF_SIZE: usize = 4;
+pub const AUTOMATED_TESTING_PROOF_SIZE: usize = 8;
 
 /// User testing edge_bits
 pub const USER_TESTING_MIN_EDGE_BITS: u8 = 15;
@@ -174,14 +176,20 @@ where
 	match chain_type {
 		// Mainnet has Cuckaroo(d)29 for AR and Cuckatoo31+ for AF
 		ChainTypes::Mainnet if edge_bits > 29 => new_cuckatoo_ctx(edge_bits, proof_size, max_sols),
-		ChainTypes::Mainnet if valid_header_version(height, HeaderVersion::new(2)) => {
+		ChainTypes::Mainnet if valid_header_version(height, HeaderVersion(3)) => {
+			new_cuckaroom_ctx(edge_bits, proof_size)
+		}
+		ChainTypes::Mainnet if valid_header_version(height, HeaderVersion(2)) => {
 			new_cuckarood_ctx(edge_bits, proof_size)
 		}
 		ChainTypes::Mainnet => new_cuckaroo_ctx(edge_bits, proof_size),
 
 		// Same for Floonet
 		ChainTypes::Floonet if edge_bits > 29 => new_cuckatoo_ctx(edge_bits, proof_size, max_sols),
-		ChainTypes::Floonet if valid_header_version(height, HeaderVersion::new(2)) => {
+		ChainTypes::Floonet if valid_header_version(height, HeaderVersion(3)) => {
+			new_cuckaroom_ctx(edge_bits, proof_size)
+		}
+		ChainTypes::Floonet if valid_header_version(height, HeaderVersion(2)) => {
 			new_cuckarood_ctx(edge_bits, proof_size)
 		}
 		ChainTypes::Floonet => new_cuckaroo_ctx(edge_bits, proof_size),

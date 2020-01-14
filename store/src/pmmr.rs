@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -110,7 +110,7 @@ impl<T: PMMRable> Backend<T> for PMMRBackend<T> {
 	/// Get the hash at pos.
 	/// Return None if pos is a leaf and it has been removed (or pruned or
 	/// compacted).
-	fn get_hash(&self, pos: u64) -> Option<(Hash)> {
+	fn get_hash(&self, pos: u64) -> Option<Hash> {
 		if self.prunable && pmmr::is_leaf(pos) && !self.leaf_set.includes(pos) {
 			return None;
 		}
@@ -119,7 +119,7 @@ impl<T: PMMRable> Backend<T> for PMMRBackend<T> {
 
 	/// Get the data at pos.
 	/// Return None if it has been removed or if pos is not a leaf node.
-	fn get_data(&self, pos: u64) -> Option<(T::E)> {
+	fn get_data(&self, pos: u64) -> Option<T::E> {
 		if !pmmr::is_leaf(pos) {
 			return None;
 		}
@@ -137,6 +137,36 @@ impl<T: PMMRable> Backend<T> for PMMRBackend<T> {
 			Box::new(self.leaf_set.iter())
 		} else {
 			panic!("leaf_pos_iter not implemented for non-prunable PMMR")
+		}
+	}
+
+	fn n_unpruned_leaves(&self) -> u64 {
+		if self.prunable {
+			self.leaf_set.len() as u64
+		} else {
+			pmmr::n_leaves(self.unpruned_size())
+		}
+	}
+
+	/// Returns an iterator over all the leaf insertion indices (0-indexed).
+	/// If our pos are [1,2,4,5,8] (first 5 leaf pos) then our insertion indices are [0,1,2,3,4]
+	fn leaf_idx_iter(&self, from_idx: u64) -> Box<dyn Iterator<Item = u64> + '_> {
+		// pass from_idx in as param
+		// convert this to pos
+		// iterate, skipping everything prior to this
+		// pass in from_idx=0 then we want to convert to pos=1
+
+		let from_pos = pmmr::insertion_to_pmmr_index(from_idx + 1);
+
+		if self.prunable {
+			Box::new(
+				self.leaf_set
+					.iter()
+					.skip_while(move |x| *x < from_pos)
+					.map(|x| pmmr::n_leaves(x).saturating_sub(1)),
+			)
+		} else {
+			panic!("leaf_idx_iter not implemented for non-prunable PMMR")
 		}
 	}
 
@@ -204,13 +234,9 @@ impl<T: PMMRable> PMMRBackend<T> {
 		data_dir: P,
 		prunable: bool,
 		fixed_size: bool,
+		version: ProtocolVersion,
 		header: Option<&BlockHeader>,
 	) -> io::Result<PMMRBackend<T>> {
-		// Note: Explicit protocol version here.
-		// Regardless of our "default" protocol version we have existing MMR files
-		// and we need to be able to support these across upgrades.
-		let version = ProtocolVersion(1);
-
 		let data_dir = data_dir.as_ref();
 
 		// Are we dealing with "fixed size" data elements or "variable size" data elements

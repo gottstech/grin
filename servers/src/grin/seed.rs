@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ use crate::util::StopState;
 
 // DNS Seeds with contact email associated
 const MAINNET_DNS_SEEDS: &'static [&'static str] = &[
-	"mainnet.seed.grin-tech.org",      // igno.peverell@protonmail.com
 	"mainnet.seed.grin.icu",           // gary.peverell@protonmail.com
 	"mainnet.seed.713.mw",             // jasper@713.mw
 	"mainnet.seed.grin.lesceller.com", // q.lesceller@gmail.com
@@ -42,7 +41,6 @@ const MAINNET_DNS_SEEDS: &'static [&'static str] = &[
 	"grinseed.yeastplume.org",         // yeastplume@protonmail.com
 ];
 const FLOONET_DNS_SEEDS: &'static [&'static str] = &[
-	"floonet.seed.grin-tech.org",      // igno.peverell@protonmail.com
 	"floonet.seed.grin.icu",           // gary.peverell@protonmail.com
 	"floonet.seed.713.mw",             // jasper@713.mw
 	"floonet.seed.grin.lesceller.com", // q.lesceller@gmail.com
@@ -157,7 +155,9 @@ fn monitor_peers(
 				let interval = Utc::now().timestamp() - x.last_banned;
 				// Unban peer
 				if interval >= config.ban_window() {
-					peers.unban_peer(x.addr);
+					if let Err(e) = peers.unban_peer(x.addr) {
+						error!("failed to unban peer {}: {:?}", x.addr, e);
+					}
 					debug!(
 						"monitor_peers: unbanned {} after {} seconds",
 						x.addr, interval
@@ -239,14 +239,14 @@ fn monitor_peers(
 		max_peer_attempts as usize,
 	);
 
-	for p in new_peers.iter().filter(|p| !peers.is_known(p.addr)) {
-		trace!(
-			"monitor_peers: on {}:{}, queue to soon try {}",
-			config.host,
-			config.port,
-			p.addr,
-		);
-		tx.send(p.addr).unwrap();
+	// Only queue up connection attempts for candidate peers where we
+	// are confident we do not yet know about this peer.
+	// The call to is_known() may fail due to contention on the peers map.
+	// Do not attempt any connection where is_known() fails for any reason.
+	for p in new_peers {
+		if let Ok(false) = peers.is_known(p.addr) {
+			tx.send(p.addr).unwrap();
+		}
 	}
 }
 

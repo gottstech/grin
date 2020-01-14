@@ -1,4 +1,4 @@
-// Copyright 2018 The Grin Developers
+// Copyright 2019 The Grin Developers
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,15 +69,27 @@ pub struct Status {
 	pub connections: u32,
 	// The state of the current fork Tip
 	pub tip: Tip,
+	// The current sync status
+	pub sync_status: String,
+	// Additional sync information
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub sync_info: Option<serde_json::Value>,
 }
 
 impl Status {
-	pub fn from_tip_and_peers(current_tip: chain::Tip, connections: u32) -> Status {
+	pub fn from_tip_and_peers(
+		current_tip: chain::Tip,
+		connections: u32,
+		sync_status: String,
+		sync_info: Option<serde_json::Value>,
+	) -> Status {
 		Status {
 			protocol_version: ser::ProtocolVersion::local().into(),
 			user_agent: p2p::msg::USER_AGENT.to_string(),
 			connections: connections,
 			tip: Tip::from_tip(current_tip),
+			sync_status,
+			sync_info,
 		}
 	}
 }
@@ -94,13 +106,16 @@ pub struct TxHashSet {
 }
 
 impl TxHashSet {
-	pub fn from_head(head: Arc<chain::Chain>) -> TxHashSet {
-		let roots = head.get_txhashset_roots();
-		TxHashSet {
-			output_root_hash: roots.output_root.to_hex(),
-			range_proof_root_hash: roots.rproof_root.to_hex(),
-			kernel_root_hash: roots.kernel_root.to_hex(),
-		}
+	/// A TxHashSet in the context of the api is simply the collection of PMMR roots.
+	/// We can obtain these in a lightweight way by reading them from the head of the chain.
+	/// We will have validated the roots on this header against the roots of the txhashset.
+	pub fn from_head(chain: Arc<chain::Chain>) -> Result<TxHashSet, chain::Error> {
+		let header = chain.head_header()?;
+		Ok(TxHashSet {
+			output_root_hash: header.output_root.to_hex(),
+			range_proof_root_hash: header.range_proof_root.to_hex(),
+			kernel_root_hash: header.kernel_root.to_hex(),
+		})
 	}
 }
 
@@ -320,7 +335,7 @@ impl OutputPrintable {
 		};
 
 		let p_vec = util::from_hex(proof_str)
-			.map_err(|_| ser::Error::HexError(format!("invalud output range_proof")))?;
+			.map_err(|_| ser::Error::HexError(format!("invalid output range_proof")))?;
 		let mut p_bytes = [0; util::secp::constants::MAX_PROOF_SIZE];
 		for i in 0..p_bytes.len() {
 			p_bytes[i] = p_vec[i];
