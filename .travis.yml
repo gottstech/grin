@@ -75,18 +75,6 @@ matrix:
       env: CI_JOB="test"        CI_JOB_ARGS="api util store"
     - os: osx
       env: CI_JOB="release"     CI_JOB_ARGS=""
-    - os: windows
-      env: CI_JOB="test"        CI_JOB_ARGS="servers"
-    - os: windows
-      env: CI_JOB="test"        CI_JOB_ARGS="chain core"
-    - os: windows
-      env: CI_JOB="test"        CI_JOB_ARGS="pool p2p src"
-    - os: windows
-      env: CI_JOB="test"        CI_JOB_ARGS="keychain"
-    - os: windows
-      env: CI_JOB="test"        CI_JOB_ARGS="api util store"
-    - os: windows
-      env: CI_JOB="release"     CI_JOB_ARGS=""
 
 script:
     - if [ "$TRAVIS_OS_NAME" = "windows" ]; then git checkout Cargo.toml; git apply windows.patch; fi
